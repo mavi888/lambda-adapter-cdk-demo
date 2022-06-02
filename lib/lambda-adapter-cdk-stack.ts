@@ -1,16 +1,37 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Stack, StackProps, CfnOutput, Duration } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import {Function, Runtime, Code, LayerVersion, FunctionUrlAuthType, HttpMethod } from "aws-cdk-lib/aws-lambda";
 
 export class LambdaAdapterCdkStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+     // Lambda Adapter Layer
+      const layerLambdaAdapter = LayerVersion.fromLayerVersionArn(this, 'LambdaAdapterLayerX86', `arn:aws:lambda:${this.region}:753240598075:layer:LambdaAdapterLayerX86:2`);
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'LambdaAdapterCdkQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+     // Lambda
+      const lambdaAdapterFunction = new Function(this, "lambdaAdapterFunction", {
+        runtime: Runtime.NODEJS_16_X,
+        code: Code.fromAsset("express-app-demo"),
+        handler: "run.sh",
+        environment: {
+          AWS_LAMBDA_EXEC_WRAPPER: '/opt/bootstrap',
+          RUST_LOG: 'info'
+        },
+        memorySize: 1024,
+        layers: [layerLambdaAdapter],
+        timeout: Duration.minutes(5)    
+      });
+
+      const lambdaAdapterFunctionUrl = lambdaAdapterFunction.addFunctionUrl({
+        authType: FunctionUrlAuthType.NONE,
+        cors: {
+          allowedOrigins: ['*']
+        }
+      })
+
+      new CfnOutput(this, 'FunctionUrl', {
+        value: lambdaAdapterFunctionUrl.url,
+      });
   }
 }
