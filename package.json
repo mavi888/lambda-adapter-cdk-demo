@@ -4,6 +4,7 @@
   "bin": {
     "lambda-adapter-cdk": "bin/lambda-adapter-cdk.js"
   },
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
